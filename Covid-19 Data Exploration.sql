@@ -118,7 +118,7 @@ FROM populationvsvaccinations
 -- Using TEMP TABLE to perform calculation on Partition By from pervious query
 
 DROP TEMPORARY TABLE percentpopulationvaccinated;
--- Drop Temp Table if it exists
+-- Drop TEMP TABLE if it exists
 
 CREATE TEMPORARY TABLE percentpopulationvaccinated
 ( 
