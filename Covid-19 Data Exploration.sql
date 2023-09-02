@@ -88,8 +88,8 @@ ORDER BY 1,2
 -- Total Population vs Vaccinations
 -- Percentage of Population that has recieved at least one Covid Vaccine
 
-SELECT dea.continent, dea.location, dea.date, dea.population, vax.new_vaccinations
-, SUM(CONVERT(INT,vax.new_vaccinations)) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_people_vaccinated
+SELECT dea.continent, dea.location, dea.date, dea.population, vax.new_vaccinations, 
+	SUM(CONVERT(vax.new_vaccinations,INT)) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_people_vaccinated
 FROM portfolio_project.coviddeaths dea
 JOIN portfolio_project.covidvaccinations vax
 	ON dea.location = vax.location
@@ -103,8 +103,8 @@ ORDER BY 2,3
 WITH populationvsvaccinations (continent, location, date, population, new_vaccinations, rolling_people_vaccinated)  
 AS
 (
-SELECT dea.continent, dea.location, dea.date, dea.population, vax.new_vaccinations
-, SUM(CONVERT(INT,vax.new_vaccinations)) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_people_vaccinated
+SELECT dea.continent, dea.location, dea.date, dea.population, vax.new_vaccinations, 
+	SUM(CONVERT(vax.new_vaccinations,INT)) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_people_vaccinated
 FROM portfolio_project.coviddeaths dea
 JOIN portfolio_project.covidvaccinations vax
 	ON dea.location = vax.location
@@ -117,37 +117,39 @@ FROM populationvsvaccinations
 
 -- Using TEMP TABLE to perform calculation on Partition By from pervious query
 
-DROP TABLE IF exist #percentpopulationvaccinated
-CREATE TABLE #percentpopulationvaccinated
-(
-continent nvarchar (225),
-location nvarchar (255),
+DROP TEMPORARY TABLE percentpopulationvaccinated;
+-- Drop Temp Table if it exists
+
+CREATE TEMPORARY TABLE percentpopulationvaccinated
+( 
+continent nvarchar(225),
+location nvarchar(255),
 date datetime,
 population numeric,
 new_vaccinations numeric,
 rolling_people_vaccinated numeric
-)
+);
 
-INSERT INTO #percentpoplationvaccinated
-SELECT dea.continent, dea.location, dea.date, dea.population, vax.new_vaccinations
-, SUM(CONVERT(INT,vax.new_vaccinations)) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_people_vaccinated
+INSERT INTO percentpopulationvaccinated
+SELECT dea.continent, dea.location, dea.date, dea.population, vax.new_vaccinations, 
+	SUM(CONVERT(vax.new_vaccinations,INT)) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_people_vaccinated
 FROM portfolio_project.coviddeaths dea
 JOIN portfolio_project.covidvaccinations vax
 	ON dea.location = vax.location
     AND dea.date = vax.date
-WHERE dea.continent IS NOT NULL  
-)
+WHERE dea.continent IS NOT NULL
+
 SELECT *, (rolling_people_vaccinated/population)*100 AS rolling_percentage
-FROM populationvsvaccinations
+FROM percentpopulationvaccinated
 
 
 -- Creating View to store data for later visulizations
 
-CREATE VIEW percentpopulationvaccinated
-SELECT dea.continent, dea.location, dea.date, dea.population, vax.new_vaccinations
-, SUM(CONVERT(INT,vax.new_vaccinations)) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_people_vaccinated
+CREATE VIEW percentpopulationvaccinated AS
+SELECT dea.continent, dea.location, dea.date, dea.population, vax.new_vaccinations, 
+	SUM(CONVERT(vax.new_vaccinations,INT)) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_people_vaccinated
 FROM portfolio_project.coviddeaths dea
 JOIN portfolio_project.covidvaccinations vax
 	ON dea.location = vax.location
     AND dea.date = vax.date
-WHERE dea.continent IS NOT NULL  
+WHERE dea.continent IS NOT NULL   
